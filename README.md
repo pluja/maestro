@@ -1,43 +1,39 @@
 ![maestro banner](banner.png)
 
-Maestro is a terminal assistant powered by LLM models, it transforms your instructions into bash commands. Use it 100% offline, or use OpenAI's ChatGPT API.
+`maestro` converts natural language instructions into cli commands. It's designed for both offline use with Ollama and online integration with ChatGPT API.
 
 ![](maestro.svg)
 
 
-## Features
+## Key Features
 
-- **Easy**: just type your instructions and press enter
-- **Execute**: Use the `-e` flag to execute the command directly
-  - You will be prompted to confirm the command before executing it
-- **Context**: Maestro always has your system context: current directory, system, user, etc.
-- **Multiple LLM models**
-  - 100% offline usage with [Ollama](https://ollama.ai), with [more than 40 models](https://ollama.ai/library)
-  - Use GPT4-Turbo or GPT3.5-Turbo
+- **Ease of Use**: Simply type your instructions and press enter.
+- **Direct Execution**: Utilize the `-e` flag to directly execute commands with a confirmation prompt for safety.
+- **Context Awareness**: Maestro understands your system's context, including the current directory, system, and user.
+- **Support for Multiple LLM Models**: Choose from a variety of models for offline and online usage.
+  - Offline: [Ollama](https://ollama.ai) with [over 40 models available](https://ollama.ai/library).
+  - Online: GPT4-Turbo and GPT3.5-Turbo.
 
-## Example
+## Installation
 
+1. Download the latest binary from the [releases page](https://github.com/pluja/maestro/releases).
+2. Execute `./maestro -h` to start.
 
-
-## Basic Installation
-
-1. Get the latest binary from the [releases page](https://github.com/pluja/maestro/releases)
-2. Run it: `./maestro -h`
-
-> You'll have a much better experience if put the binary in a directory that's in your `$PATH` and rename it to `maestro`. For example: `sudo mv ./maestro /usr/local/bin/maestro`. Then you can run it with `maestro` from anywhere!
+> Tip: Place the binary in a directory within your `$PATH` and rename it to `maestro` for global access, e.g., `sudo mv ./maestro /usr/local/bin/maestro`.
 
 ### Offline Usage with [Ollama](https://ollama.ai)
 
-1. [Install ollama](https://ollama.ai/download), or [run it with docker](https://hub.docker.com/r/ollama/ollama)
-2. Pull some models with `ollama pull <model-name>`
-    - You must pull at least the default `codellama:7b-instruct` model: `ollama pull codellama:7b-instruct`
-3. Start the server with `ollama serve` (default docker behavior)
-4. Set the ollama server URL with `./maestro -set-ollama-url <ollama-url>`
-   - Example: `./maestro -set-ollama-url http://localhost:8080`
+## Offline Usage with Ollama
 
-### Usage with OpenAI's API
+1. Install Ollama from [here](https://ollama.ai/download) or use [ollama's docker image](https://hub.docker.com/r/ollama/ollama).
+2. Download models using `ollama pull <model-name>`. 
+   - **IMPORTANT**: You must pull the default model: `ollama pull codellama:7b-instruct`
+3. Start the Ollama server with `ollama serve`.
+4. Configure Maestro to use Ollama with `./maestro -set-ollama-url <ollama-url>`, for example, `./maestro -set-ollama-url http://localhost:8080`.
 
-1. Get an API token from [OpenAI](https://platform.openai.com/)
-2. Set the api token with `./maestro -set-openai-token <your-token>`
+## Online Usage with OpenAI's API
 
-After setting your token, you can use the `-4` flag to use GPT4-Turbo or `-3` for GPT3.5-Turbo.
+1. Obtain an API token from [OpenAI](https://platform.openai.com/).
+2. Set the token using `./maestro -set-openai-token <your-token>`.
+3. Choose between GPT4-Turbo with `-4` flag and GPT3.5-Turbo with `-3` flag.
+    - Example: `./maestro -4 <prompt>`
