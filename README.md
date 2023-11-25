@@ -1,6 +1,9 @@
-![whishper banner](banner.png)
+![maestro banner](banner.png)
 
 Maestro is a terminal assistant powered by LLM models, it transforms your instructions into bash commands. Use it 100% offline, or use OpenAI's ChatGPT API.
+
+![](maestro.svg)
+
 
 ## Features
 
@@ -14,7 +17,7 @@ Maestro is a terminal assistant powered by LLM models, it transforms your instru
 
 ## Example
 
-![](maestro.svg)
+
 
 ## Basic Installation
 
