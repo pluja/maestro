@@ -13,6 +13,7 @@
 - **Support for Multiple LLM Models**: Choose from a variety of models for offline and online usage.
   - Offline: [Ollama](https://ollama.ai) with [over 40 models available](https://ollama.ai/library).
   - Online: GPT4-Turbo and GPT3.5-Turbo.
+- **Lightweight**: Maestro is a single 9MB binary with no dependencies.
 
 ## Installation
 
