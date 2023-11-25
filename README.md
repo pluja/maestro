@@ -22,9 +22,7 @@
 
 > Tip: Place the binary in a directory within your `$PATH` and rename it to `maestro` for global access, e.g., `sudo mv ./maestro /usr/local/bin/maestro`.
 
-### Offline Usage with [Ollama](https://ollama.ai)
-
-## Offline Usage with Ollama
+## Offline Usage with [Ollama](https://ollama.ai)
 
 1. Install Ollama from [here](https://ollama.ai/download) or use [ollama's docker image](https://hub.docker.com/r/ollama/ollama).
 2. Download models using `ollama pull <model-name>`. 
