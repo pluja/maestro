@@ -1,6 +1,16 @@
-# Maestro: bash the easy way
+![whishper banner](banner.png)
 
-Maestro is a terminal assistant powered by LLM models, it transforms your instructions into bash commands. Run it 100% offline, or use OpenAI's models.
+Maestro is a terminal assistant powered by LLM models, it transforms your instructions into bash commands. Use it 100% offline, or use OpenAI's ChatGPT API.
+
+## Features
+
+- **Easy**: just type your instructions and press enter
+- **Execute**: Use the `-e` flag to execute the command directly
+  - You will be prompted to confirm the command before executing it
+- **Context**: Maestro always has your system context: current directory, system, user, etc.
+- **Multiple LLM models**
+  - 100% offline usage with [Ollama](https://ollama.ai), with [more than 40 models](https://ollama.ai/library)
+  - Use GPT4-Turbo or GPT3.5-Turbo
 
 ## Example
 
