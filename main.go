@@ -14,18 +14,22 @@ import (
 func main() {
 	cfg := parseFlags()
 	db.Init()
+	defer db.Badger.Close()
 
 	if err := handleConfigSettings(cfg); err != nil {
-		panic(err)
+		fmt.Println(utils.ColorRed + "Error: " + err.Error() + utils.ColorReset)
 	}
 
 	if cfg.query == "" {
 		fmt.Println("Usage: maestro <query>")
+		db.Badger.Close()
 		os.Exit(1)
 	}
 
 	if err := processQuery(cfg); err != nil {
-		panic(err)
+		fmt.Println(utils.ColorRed + "Error: " + err.Error() + utils.ColorReset)
+		db.Badger.Close()
+		os.Exit(1)
 	}
 }
 
@@ -41,6 +45,10 @@ func parseFlags() *config {
 		ollamaDefaultModel: maestroFlags.String("set-ollama-model", "", "Set the default ollama model"),
 	}
 
+	if *cfg.ollamaModel != "codellama:7b-instruct" {
+		fmt.Println(utils.ColorBlue + "Using model " + *cfg.ollamaModel + utils.ColorReset)
+	}
+
 	maestroFlags.Parse(os.Args[1:])
 	cfg.query = strings.Join(maestroFlags.Args(), " ")
 	return cfg
@@ -52,6 +60,7 @@ func handleConfigSettings(cfg *config) error {
 			return err
 		}
 		fmt.Println("OpenAI API token set.")
+		db.Badger.Close()
 		os.Exit(0)
 	}
 
@@ -61,6 +70,7 @@ func handleConfigSettings(cfg *config) error {
 			return err
 		}
 		fmt.Println(utils.ColorGreen + "Ollama URL set." + utils.ColorReset)
+		db.Badger.Close()
 		os.Exit(0)
 	}
 
@@ -69,6 +79,7 @@ func handleConfigSettings(cfg *config) error {
 			return err
 		}
 		fmt.Println(utils.ColorGreen + "Ollama default model set to " + *cfg.ollamaDefaultModel + utils.ColorReset)
+		db.Badger.Close()
 		os.Exit(0)
 	}
 	return nil
@@ -80,7 +91,7 @@ func processQuery(cfg *config) error {
 		return err
 	}
 
-	prompt := context + "\n\n" + cfg.query + "\n"
+	prompt := "```CONTEXT: " + context + "```\n\n TASK: " + cfg.query + "\n"
 	ai, err := selectAI(cfg)
 	if err != nil {
 		return err
@@ -141,7 +152,8 @@ func executeCommands(response llm.Response) {
 		if confirmation {
 			utils.RunCommand(command.Command)
 		} else {
-			fmt.Println("Command execution cancelled.")
+			fmt.Println(utils.ColorBlue + "[X] Command execution cancelled." + utils.ColorReset)
+			db.Badger.Close()
 			os.Exit(0)
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -13,10 +14,11 @@ type Ollama struct {
 }
 
 type OllamaResponse struct {
-	Model     string `json:"model"`
-	CreatedAt string `json:"created_at"`
-	Response  string `json:"response"`
-	Done      bool   `json:"done"`
+	Model     string `json:"model,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	Response  string `json:"response,omitempty"`
+	Done      bool   `json:"done,omitempty"`
+	Error     string `json:"error,omitempty"`
 }
 
 func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
@@ -63,8 +65,14 @@ func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
 
 	var ollamaResponse OllamaResponse
 	json.NewDecoder(resp.Body).Decode(&ollamaResponse)
+	if ollamaResponse.Error != "" {
+		return response, fmt.Errorf(ollamaResponse.Error)
+	}
 
-	json.Unmarshal([]byte(ollamaResponse.Response), &response)
+	err = json.Unmarshal([]byte(ollamaResponse.Response), &response)
+	if err != nil {
+		return response, err
+	}
 
 	return response, nil
 }
