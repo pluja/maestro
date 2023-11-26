@@ -24,7 +24,7 @@
 
 ## Offline Usage with [Ollama](https://ollama.ai)
 
-1. Install Ollama from [here](https://ollama.ai/download) or use [ollama's docker image](https://hub.docker.com/r/ollama/ollama).
+1. Install Ollama from [here](https://ollama.ai/download) (or use [ollama's docker image](https://hub.docker.com/r/ollama/ollama)).
 2. Download models using `ollama pull <model-name>`. 
    - **IMPORTANT**: You must pull the default model: `ollama pull codellama:7b-instruct`
 3. Start the Ollama server with `ollama serve`.
