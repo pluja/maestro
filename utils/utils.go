@@ -58,7 +58,7 @@ func GetDirFileList() (string, error) {
 	return builder.String(), nil
 }
 
-func GetContext() (string, error) {
+func GetContext(disableFiles bool) (string, error) {
 	// Get the current working directory
 	dir, err := os.Getwd()
 	if err != nil {
@@ -79,13 +79,14 @@ func GetContext() (string, error) {
 	}
 
 	context += fmt.Sprintf("\nUsername: %s, UID: %s, GID: %s", currentUser.Username, currentUser.Uid, currentUser.Gid)
-	context += fmt.Sprintf("\nCurrent working directory: %s", dir)
-	files, err := GetDirFileList()
-	if err != nil {
-		return "", fmt.Errorf("error getting files: %w", err)
+	if !disableFiles {
+		context += fmt.Sprintf("\nCurrent working directory: %s", dir)
+		files, err := GetDirFileList()
+		if err != nil {
+			return "", fmt.Errorf("error getting files: %w", err)
+		}
+		context += files
 	}
-	context += "\n'ls -l': \n"
-	context += files
 
 	return context, nil
 }
