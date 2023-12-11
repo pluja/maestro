@@ -30,6 +30,15 @@ type Message struct {
 }
 
 func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
+	// Check if the Ollama API version is compatible
+	compatible, err := ol.CheckVersion()
+	if err != nil {
+		return Response{}, err
+	}
+	if !compatible {
+		return Response{}, fmt.Errorf("Ollama API version too old. Please update your Ollama instance to at least v0.1.14")
+	}
+
 	var response Response
 
 	type RequestBody struct {

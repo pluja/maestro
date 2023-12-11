@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"os/user"
 	"strings"
@@ -89,4 +90,35 @@ func GetContext(disableFiles bool) (string, error) {
 	}
 
 	return context, nil
+}
+
+// compareVersion compares two version strings, returning true if v1 is greater than v2
+func CompareVersion(v1, v2 string) bool {
+	v1Parts := strings.Split(v1, ".")
+	v2Parts := strings.Split(v2, ".")
+	for i := 0; i < len(v1Parts) && i < len(v2Parts); i++ {
+		if v1Parts[i] > v2Parts[i] {
+			return true
+		} else if v1Parts[i] < v2Parts[i] {
+			return false
+		}
+	}
+	return len(v1Parts) >= len(v2Parts)
+}
+
+func SanitizeEndpoint(endpoint string) string {
+	if !strings.HasPrefix(endpoint, "http") && !strings.HasPrefix(endpoint, "https") {
+		endpoint = fmt.Sprintf("http://%s", endpoint)
+	}
+	endpoint = strings.ReplaceAll(endpoint, "/api/chat", "")
+	endpoint = strings.TrimSuffix(endpoint, "/")
+
+	// Get only the host and scheme
+	url, err := url.Parse(endpoint)
+	if err != nil {
+		return endpoint
+	}
+	endpoint = fmt.Sprintf("%s://%s", url.Scheme, url.Host)
+
+	return endpoint
 }
