@@ -68,7 +68,7 @@ func handleConfigSettings(cfg *config) error {
 	}
 
 	if *cfg.ollamaUrl != "" {
-		endpoint := sanitizeEndpoint(*cfg.ollamaUrl)
+		endpoint := utils.SanitizeEndpoint(*cfg.ollamaUrl)
 		if err := db.Badger.Set("ollama-url", endpoint); err != nil {
 			return err
 		}
@@ -163,15 +163,6 @@ func executeCommands(response llm.Response) {
 			os.Exit(0)
 		}
 	}
-}
-
-func sanitizeEndpoint(url string) string {
-	if !strings.HasPrefix(url, "http") && !strings.HasPrefix(url, "https") {
-		url = fmt.Sprintf("http://%s", url)
-	}
-	url = strings.TrimSuffix(url, "/")
-	url = strings.ReplaceAll(url, "/api/chat", "")
-	return fmt.Sprintf("%s/api/chat", url)
 }
 
 type config struct {
