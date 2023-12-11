@@ -13,6 +13,7 @@ import (
 
 func main() {
 	cfg := parseFlags()
+
 	db.Init()
 	defer db.Badger.Close()
 
@@ -36,14 +37,15 @@ func main() {
 func parseFlags() *config {
 	maestroFlags := flag.NewFlagSet("maestro", flag.ExitOnError)
 	cfg := &config{
-		four:                 maestroFlags.Bool("4", false, "Use OpenAI GPT-4"),
-		three:                maestroFlags.Bool("3", false, "Use OpenAI GPT-3"),
-		execFlag:             maestroFlags.Bool("e", false, "Run the command instead of printing it"),
-		disableFolderContext: maestroFlags.Bool("nc", false, "Disable the folder context (files and folders)"),
-		ollamaModel:          maestroFlags.String("m", "codellama:7b-instruct", "Model to use"),
-		oaiToken:             maestroFlags.String("set-openai-token", "", "Set OpenAI API token"),
-		ollamaUrl:            maestroFlags.String("set-ollama-url", "", "Set the ollama server URL"),
-		ollamaDefaultModel:   maestroFlags.String("set-ollama-model", "", "Set the default ollama model"),
+		four:                maestroFlags.Bool("4", false, "Use OpenAI GPT-4"),
+		three:               maestroFlags.Bool("3", false, "Use OpenAI GPT-3"),
+		dev:                 maestroFlags.Bool("dev", false, "Enable development mode"),
+		execFlag:            maestroFlags.Bool("e", false, "Run the command instead of printing it"),
+		enableFolderContext: maestroFlags.Bool("wc", false, "Enable the folder context (files and folders)"),
+		ollamaModel:         maestroFlags.String("m", "codellama:7b-instruct", "Model to use"),
+		oaiToken:            maestroFlags.String("set-openai-token", "", "Set OpenAI API token"),
+		ollamaUrl:           maestroFlags.String("set-ollama-url", "", "Set the ollama server URL"),
+		ollamaDefaultModel:  maestroFlags.String("set-ollama-model", "", "Set the default ollama model"),
 	}
 
 	if *cfg.ollamaModel != "codellama:7b-instruct" {
@@ -87,12 +89,15 @@ func handleConfigSettings(cfg *config) error {
 }
 
 func processQuery(cfg *config) error {
-	context, err := utils.GetContext(*cfg.disableFolderContext)
-	if err != nil {
-		return err
+	prompt := "**TASK: " + cfg.query + "?**\n"
+	if cfg.enableFolderContext != nil && *cfg.enableFolderContext {
+		context, err := utils.GetContext(*cfg.enableFolderContext)
+		if err != nil {
+			return err
+		}
+		prompt += "```CONTEXT: " + context + "```"
 	}
 
-	prompt := "```CONTEXT: " + context + "```\n\n TASK: " + cfg.query + "\n"
 	ai, err := selectAI(cfg)
 	if err != nil {
 		return err
@@ -165,18 +170,19 @@ func sanitizeEndpoint(url string) string {
 		url = fmt.Sprintf("http://%s", url)
 	}
 	url = strings.TrimSuffix(url, "/")
-	url = strings.ReplaceAll(url, "/api/generate", "")
-	return fmt.Sprintf("%s/api/generate", url)
+	url = strings.ReplaceAll(url, "/api/chat", "")
+	return fmt.Sprintf("%s/api/chat", url)
 }
 
 type config struct {
-	four                 *bool
-	three                *bool
-	execFlag             *bool
-	ollamaModel          *string
-	oaiToken             *string
-	ollamaUrl            *string
-	ollamaDefaultModel   *string
-	query                string
-	disableFolderContext *bool
+	four                *bool
+	three               *bool
+	dev                 *bool
+	execFlag            *bool
+	ollamaModel         *string
+	oaiToken            *string
+	ollamaUrl           *string
+	ollamaDefaultModel  *string
+	query               string
+	enableFolderContext *bool
 }

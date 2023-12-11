@@ -14,30 +14,43 @@ type Ollama struct {
 }
 
 type OllamaResponse struct {
-	Model     string `json:"model,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	Response  string `json:"response,omitempty"`
-	Done      bool   `json:"done,omitempty"`
-	Error     string `json:"error,omitempty"`
+	Model     string  `json:"model,omitempty"`
+	CreatedAt string  `json:"created_at,omitempty"`
+	Message   Message `json:"message,omitempty"`
+	Done      bool    `json:"done,omitempty"`
+	Error     string  `json:"error,omitempty"`
+}
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
 	var response Response
 
 	type RequestBody struct {
-		Model  string `json:"model"`
-		Prompt string `json:"prompt"`
-		Format string `json:"format"`
-		System string `json:"system"`
-		Stream bool   `json:"stream"`
+		Model    string    `json:"model"`
+		Messages []Message `json:"messages"`
+		Format   string    `json:"format"`
+		Stream   bool      `json:"stream"`
 	}
 
+	var messages []Message
+	messages = append(messages, Message{
+		Role:    "system",
+		Content: SystemPrompt,
+	})
+
+	messages = append(messages, Message{
+		Role:    "user",
+		Content: prompt,
+	})
+
 	data := RequestBody{
-		Model:  ol.Model,
-		Prompt: prompt,
-		Format: "json",
-		System: SystemPrompt,
-		Stream: false,
+		Model:    ol.Model,
+		Messages: messages,
+		Format:   "json",
+		Stream:   false,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -69,7 +82,7 @@ func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
 		return response, fmt.Errorf(ollamaResponse.Error)
 	}
 
-	err = json.Unmarshal([]byte(ollamaResponse.Response), &response)
+	err = json.Unmarshal([]byte(ollamaResponse.Message.Content), &response)
 	if err != nil {
 		return response, err
 	}
