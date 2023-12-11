@@ -6,6 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+
+	"pluja.dev/maestro/db"
+	"pluja.dev/maestro/utils"
 )
 
 type Ollama struct {
@@ -58,7 +62,14 @@ func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
 		return response, err
 	}
 
-	req, err := http.NewRequest("POST", ol.Endpoint, bytes.NewBuffer(jsonData))
+	// For compatibility with older versions of maestro
+	if strings.Contains(ol.Endpoint, "/api/chat") {
+		ol.Endpoint = utils.SanitizeEndpoint(ol.Endpoint)
+		db.Badger.Set("ollama-url", ol.Endpoint)
+	}
+
+	url := fmt.Sprintf("%s/api/chat", ol.Endpoint)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return response, err
 	}
@@ -88,4 +99,29 @@ func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
 	}
 
 	return response, nil
+}
+
+func (ol Ollama) CheckVersion() (bool, error) {
+	// APIVersionResponse represents the JSON response structure for the API version
+	type APIVersionResponse struct {
+		Version string `json:"version"`
+	}
+
+	url := strings.TrimSuffix(ol.Endpoint, "/")
+	url = strings.ReplaceAll(url, "/api/chat", "")
+	// Send a GET request to the API
+	resp, err := http.Get(fmt.Sprintf("%s/api/version", url))
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	// Decode the JSON response
+	var apiResp APIVersionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return false, err
+	}
+
+	// Compare the version
+	return utils.CompareVersion(apiResp.Version, "0.1.14"), nil
 }
