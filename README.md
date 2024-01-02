@@ -26,7 +26,7 @@
 
 1. Install Ollama from [here](https://ollama.ai/download) (or use [ollama's docker image](https://hub.docker.com/r/ollama/ollama)).
 2. Download models using `ollama pull <model-name>`. 
-   - **IMPORTANT**: You must pull the default model: `ollama pull codellama:7b-instruct`
+   - **Note**: If you haven't changed it, you will need to pull the default model: `ollama pull dolphin-mistral:latest`
 3. Start the Ollama server with `ollama serve`.
 4. Configure Maestro to use Ollama with `./maestro -set-ollama-url <ollama-url>`, for example, `./maestro -set-ollama-url http://localhost:8080`.
 
