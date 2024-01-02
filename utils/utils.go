@@ -80,7 +80,7 @@ func GetContext(disableFiles bool) (string, error) {
 	}
 
 	context += fmt.Sprintf("\nUsername: %s, UID: %s, GID: %s", currentUser.Username, currentUser.Uid, currentUser.Gid)
-	if !disableFiles {
+	if disableFiles {
 		context += fmt.Sprintf("\nCurrent working directory: %s", dir)
 		files, err := GetDirFileList()
 		if err != nil {
