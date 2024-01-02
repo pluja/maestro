@@ -41,15 +41,11 @@ func parseFlags() *config {
 		three:               maestroFlags.Bool("3", false, "Use OpenAI GPT-3"),
 		dev:                 maestroFlags.Bool("dev", false, "Enable development mode"),
 		execFlag:            maestroFlags.Bool("e", false, "Run the command instead of printing it"),
-		enableFolderContext: maestroFlags.Bool("wc", false, "Enable the folder context (files and folders)"),
-		ollamaModel:         maestroFlags.String("m", "codellama:7b-instruct", "Model to use"),
+		enableFolderContext: maestroFlags.Bool("ctx", false, "Enable the folder context (files and folders list)"),
+		ollamaModel:         maestroFlags.String("m", "dolphin-mistral:latest", "Model to use"),
 		oaiToken:            maestroFlags.String("set-openai-token", "", "Set OpenAI API token"),
 		ollamaUrl:           maestroFlags.String("set-ollama-url", "", "Set the ollama server URL"),
 		ollamaDefaultModel:  maestroFlags.String("set-ollama-model", "", "Set the default ollama model"),
-	}
-
-	if *cfg.ollamaModel != "codellama:7b-instruct" {
-		fmt.Println(utils.ColorBlue + "Using model " + *cfg.ollamaModel + utils.ColorReset)
 	}
 
 	maestroFlags.Parse(os.Args[1:])
@@ -90,13 +86,11 @@ func handleConfigSettings(cfg *config) error {
 
 func processQuery(cfg *config) error {
 	prompt := "**TASK: " + cfg.query + "?**\n"
-	if cfg.enableFolderContext != nil && *cfg.enableFolderContext {
-		context, err := utils.GetContext(*cfg.enableFolderContext)
-		if err != nil {
-			return err
-		}
-		prompt += "```CONTEXT: " + context + "```"
+	context, err := utils.GetContext(*cfg.enableFolderContext)
+	if err != nil {
+		return err
 	}
+	prompt += "```CONTEXT: " + context + "```"
 
 	ai, err := selectAI(cfg)
 	if err != nil {
@@ -128,9 +122,9 @@ func selectAI(cfg *config) (llm.Llm, error) {
 
 	model, err := db.Badger.Get("ollama-model")
 	if err != nil {
-		model = "codellama:7b-instruct"
+		model = "dolphin-mistral:latest"
 	}
-	if *cfg.ollamaModel != "" {
+	if *cfg.ollamaModel != "dolphin-mistral:latest" {
 		model = *cfg.ollamaModel
 	}
 
