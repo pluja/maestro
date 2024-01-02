@@ -30,13 +30,20 @@ type Message struct {
 }
 
 func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
-	// Check if the Ollama API version is compatible
 	compatible, err := ol.CheckVersion()
 	if err != nil {
 		return Response{}, err
 	}
 	if !compatible {
-		return Response{}, fmt.Errorf("Ollama API version too old. Please update your Ollama instance to at least v0.1.14")
+		return Response{}, fmt.Errorf("ollama API version too old. Please update your Ollama instance to at least v0.1.14")
+	}
+
+	modelAvailable, err := ol.CheckModel(ol.Model)
+	if err != nil {
+		return Response{}, err
+	}
+	if !modelAvailable {
+		return Response{}, fmt.Errorf("model %q not available. Please pull the model with 'ollama pull %s' and try again", ol.Model, ol.Model)
 	}
 
 	var response Response
@@ -49,6 +56,7 @@ func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
 	}
 
 	var messages []Message
+
 	messages = append(messages, Message{
 		Role:    "system",
 		Content: SystemPrompt,
@@ -71,13 +79,21 @@ func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
 		return response, err
 	}
 
-	// For compatibility with older versions of maestro
 	if strings.Contains(ol.Endpoint, "/api/chat") {
 		ol.Endpoint = utils.SanitizeEndpoint(ol.Endpoint)
 		db.Badger.Set("ollama-url", ol.Endpoint)
 	}
 
 	url := fmt.Sprintf("%s/api/chat", ol.Endpoint)
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := &http.Client{
+		Transport: tr,
+	}
+
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return response, err
@@ -85,11 +101,6 @@ func (ol Ollama) Ask(prompt string, four bool) (Response, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return response, err
@@ -118,8 +129,18 @@ func (ol Ollama) CheckVersion() (bool, error) {
 
 	url := strings.TrimSuffix(ol.Endpoint, "/")
 	url = strings.ReplaceAll(url, "/api/chat", "")
+
+	// Create a new TLS config, allowing insecure connections
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
+
+	// Set the TLS config on the client transport
+	trans := &http.Transport{TLSClientConfig: tlsConfig}
+
+	// Create a new client
+	cli := &http.Client{Transport: trans}
+
 	// Send a GET request to the API
-	resp, err := http.Get(fmt.Sprintf("%s/api/version", url))
+	resp, err := cli.Get(fmt.Sprintf("%s/api/version", url))
 	if err != nil {
 		return false, err
 	}
@@ -133,4 +154,43 @@ func (ol Ollama) CheckVersion() (bool, error) {
 
 	// Compare the version
 	return utils.CompareVersion(apiResp.Version, "0.1.14"), nil
+}
+
+func (ol Ollama) CheckModel(modelName string) (bool, error) {
+	type Model struct {
+		Name string `json:"name"`
+	}
+	type APIModelsResponse struct {
+		Models []Model `json:"models"`
+	}
+
+	// Create a new TLS config, allowing insecure connections
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
+
+	// Set the TLS config on the client transport
+	trans := &http.Transport{TLSClientConfig: tlsConfig}
+
+	// Create a new client
+	cli := &http.Client{Transport: trans}
+
+	// Send a GET request to the API
+	resp, err := cli.Get(fmt.Sprintf("%s/api/tags", ol.Endpoint))
+	if err != nil {
+		return false, err
+	}
+
+	// Decode the JSON response
+	var apiResp APIModelsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return false, err
+	}
+
+	// Check if the model is available
+	for _, model := range apiResp.Models {
+		if model.Name == modelName {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
