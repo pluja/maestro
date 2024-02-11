@@ -8,12 +8,12 @@
 ## Key Features
 
 - **Ease of Use**: Simply type your instructions and press enter.
-- **Direct Execution**: Utilize the `-e` flag to directly execute commands with a confirmation prompt for safety.
+- **Direct Execution**: Use the `-e` flag to directly execute commands with a confirmation prompt for safety.
 - **Context Awareness**: Maestro understands your system's context, including the current directory, system, and user.
 - **Support for Multiple LLM Models**: Choose from a variety of models for offline and online usage.
   - Offline: [Ollama](https://ollama.ai) with [over 40 models available](https://ollama.ai/library).
   - Online: GPT4-Turbo and GPT3.5-Turbo.
-- **Lightweight**: Maestro is a single 9MB binary with no dependencies.
+- **Lightweight**: Maestro is a single small binary with no dependencies.
 
 ## Installation
 
