@@ -24,6 +24,9 @@
 
 ## Offline Usage with [Ollama](https://ollama.ai)
 
+> [!IMPORTANT]  
+> You need at least Ollama v0.1.24 or greater
+
 1. Install Ollama from [here](https://ollama.ai/download) (or use [ollama's docker image](https://hub.docker.com/r/ollama/ollama)).
 2. Download models using `ollama pull <model-name>`. 
    - **Note**: If you haven't changed it, you will need to pull the default model: `ollama pull dolphin-mistral:latest`

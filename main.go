@@ -11,93 +11,95 @@ import (
 	"pluja.dev/maestro/utils"
 )
 
+type Config struct {
+	Four                bool
+	Three               bool
+	Dev                 bool
+	ExecFlag            bool
+	OllamaModel         string
+	OAIToken            string
+	OllamaURL           string
+	OllamaDefaultModel  string
+	Query               string
+	EnableFolderContext bool
+}
+
 func main() {
 	cfg := parseFlags()
 
 	db.Init()
-	defer db.Badger.Close()
+	defer db.Badger.Close() // Simplified database closing logic
 
-	if err := handleConfigSettings(cfg); err != nil {
-		fmt.Println(utils.ColorRed + "Error: " + err.Error() + utils.ColorReset)
+	if err := handleConfigSettings(&cfg); err != nil {
+		exitWithError(err)
 	}
 
-	if cfg.query == "" {
-		fmt.Println("Usage: maestro <query>")
-		db.Badger.Close()
+	if cfg.Query == "" {
+		fmt.Println("Usage: maestro [flags] <query>")
 		os.Exit(1)
 	}
 
-	if err := processQuery(cfg); err != nil {
-		fmt.Println(utils.ColorRed + "Error: " + err.Error() + utils.ColorReset)
-		db.Badger.Close()
-		os.Exit(1)
+	if err := processQuery(&cfg); err != nil {
+		exitWithError(err)
 	}
 }
 
-func parseFlags() *config {
+func parseFlags() Config {
+	var cfg Config
 	maestroFlags := flag.NewFlagSet("maestro", flag.ExitOnError)
-	cfg := &config{
-		four:                maestroFlags.Bool("4", false, "Use OpenAI GPT-4"),
-		three:               maestroFlags.Bool("3", false, "Use OpenAI GPT-3"),
-		dev:                 maestroFlags.Bool("dev", false, "Enable development mode"),
-		execFlag:            maestroFlags.Bool("e", false, "Run the command instead of printing it"),
-		enableFolderContext: maestroFlags.Bool("ctx", false, "Enable the folder context (files and folders list)"),
-		ollamaModel:         maestroFlags.String("m", "dolphin-mistral:latest", "Model to use"),
-		oaiToken:            maestroFlags.String("set-openai-token", "", "Set OpenAI API token"),
-		ollamaUrl:           maestroFlags.String("set-ollama-url", "", "Set the ollama server URL"),
-		ollamaDefaultModel:  maestroFlags.String("set-ollama-model", "", "Set the default ollama model"),
-	}
-
+	maestroFlags.BoolVar(&cfg.Four, "4", false, "Use OpenAI GPT-4")
+	maestroFlags.BoolVar(&cfg.Three, "3", false, "Use OpenAI GPT-3")
+	maestroFlags.BoolVar(&cfg.Dev, "dev", false, "Enable development mode")
+	maestroFlags.BoolVar(&cfg.ExecFlag, "e", false, "Run the command instead of printing it")
+	maestroFlags.BoolVar(&cfg.EnableFolderContext, "ctx", false, "Enable the folder context (files and folders list)")
+	maestroFlags.StringVar(&cfg.OllamaModel, "m", "dolphin-mistral:latest", "Model to use")
+	maestroFlags.StringVar(&cfg.OAIToken, "set-openai-token", "", "Set OpenAI API token")
+	maestroFlags.StringVar(&cfg.OllamaURL, "set-ollama-url", "", "Set the ollama server URL")
+	maestroFlags.StringVar(&cfg.OllamaDefaultModel, "set-ollama-model", "", "Set the default ollama model")
 	maestroFlags.Parse(os.Args[1:])
-	cfg.query = strings.Join(maestroFlags.Args(), " ")
+	cfg.Query = strings.Join(maestroFlags.Args(), " ")
 	return cfg
 }
 
-func handleConfigSettings(cfg *config) error {
-	if *cfg.oaiToken != "" {
-		if err := db.Badger.Set("oai-token", *cfg.oaiToken); err != nil {
-			return err
-		}
-		fmt.Println("OpenAI API token set.")
-		db.Badger.Close()
-		os.Exit(0)
+func handleConfigSettings(cfg *Config) error {
+	if cfg.OAIToken != "" {
+		return setAndExit("oai-token", cfg.OAIToken, "OpenAI API token set.")
 	}
 
-	if *cfg.ollamaUrl != "" {
-		endpoint := utils.SanitizeEndpoint(*cfg.ollamaUrl)
-		if err := db.Badger.Set("ollama-url", endpoint); err != nil {
-			return err
-		}
-		fmt.Println(utils.ColorGreen + "Ollama URL set." + utils.ColorReset)
-		db.Badger.Close()
-		os.Exit(0)
+	if cfg.OllamaURL != "" {
+		endpoint := utils.SanitizeEndpoint(cfg.OllamaURL)
+		return setAndExit("ollama-url", endpoint, "Ollama URL set.")
 	}
 
-	if *cfg.ollamaDefaultModel != "" {
-		if err := db.Badger.Set("ollama-model", *cfg.ollamaDefaultModel); err != nil {
-			return err
-		}
-		fmt.Println(utils.ColorGreen + "Ollama default model set to " + *cfg.ollamaDefaultModel + utils.ColorReset)
-		db.Badger.Close()
-		os.Exit(0)
+	if cfg.OllamaDefaultModel != "" {
+		return setAndExit("ollama-model", cfg.OllamaDefaultModel, "Ollama default model set to "+cfg.OllamaDefaultModel)
 	}
 	return nil
 }
 
-func processQuery(cfg *config) error {
-	prompt := "**TASK: " + cfg.query + "?**\n"
-	context, err := utils.GetContext(*cfg.enableFolderContext)
+func setAndExit(key, value, message string) error {
+	if err := db.Badger.Set(key, value); err != nil {
+		return err
+	}
+	fmt.Println(utils.ColorGreen + message + utils.ColorReset)
+	os.Exit(0)
+	return nil // This return is never reached but required by the compiler
+}
+
+func processQuery(cfg *Config) error {
+	prompt := "**TASK: " + cfg.Query + "?**\n"
+	context, err := utils.GetContext(cfg.EnableFolderContext)
 	if err != nil {
 		return err
 	}
 	prompt += "```CONTEXT: " + context + "```"
 
-	ai, err := selectAI(cfg)
+	ai, err := prepareAI(cfg)
 	if err != nil {
 		return err
 	}
 
-	response, err := ai.Ask(prompt, *cfg.four)
+	response, err := ai.Ask(prompt)
 	if err != nil {
 		return err
 	}
@@ -106,41 +108,33 @@ func processQuery(cfg *config) error {
 	return nil
 }
 
-func selectAI(cfg *config) (llm.Llm, error) {
-	if *cfg.four || *cfg.three {
-		if *cfg.four && *cfg.three {
-			fmt.Println(utils.ColorRed + "You can't use both -3 and -4 flags at the same time." + utils.ColorReset)
-			os.Exit(1)
-		}
-		return llm.OpenAI{Gpt4: *cfg.four}, nil
-	}
+func prepareAI(cfg *Config) (llm.Llm, error) {
+	var ai llm.Llm
 
-	endpoint, err := db.Badger.Get("ollama-url")
+	ai.Oai = cfg.Four || cfg.Three
+	ai.Openai.Gpt4 = cfg.Four
+	ollamaEndpoint, err := db.Badger.Get("ollama-url")
 	if err != nil {
-		return nil, fmt.Errorf(utils.ColorRed + "Ollama URL not set. Please run `maestro -set-ollama-url <url>` first." + utils.ColorReset)
+		return ai, fmt.Errorf("ollama URL not set. Please run `maestro -set-ollama-url <url>` first")
 	}
 
-	model, err := db.Badger.Get("ollama-model")
-	if err != nil {
-		model = "dolphin-mistral:latest"
+	ollamaModel, err := db.Badger.Get("ollama-model")
+	if err != nil || cfg.OllamaModel != "dolphin-mistral:latest" {
+		ollamaModel = cfg.OllamaModel
 	}
-	if *cfg.ollamaModel != "dolphin-mistral:latest" {
-		model = *cfg.ollamaModel
-	}
+	ai.Ollama.Endpoint = ollamaEndpoint
+	ai.Ollama.Model = ollamaModel
 
-	return llm.Ollama{
-		Model:    model,
-		Endpoint: endpoint,
-	}, nil
+	return ai, nil
 }
 
-func displayResponse(response llm.Response, cfg *config) {
+func displayResponse(response llm.Response, cfg *Config) {
 	for _, command := range response.Commands {
 		fmt.Println(utils.ColorComment + "# " + command.Comment + utils.ColorReset)
 		fmt.Println("$ " + utils.ColorGreen + command.Command + utils.ColorReset)
 	}
 
-	if *cfg.execFlag {
+	if cfg.ExecFlag {
 		executeCommands(response)
 	}
 }
@@ -153,21 +147,12 @@ func executeCommands(response llm.Response) {
 			utils.RunCommand(command.Command)
 		} else {
 			fmt.Println(utils.ColorBlue + "[X] Command execution cancelled." + utils.ColorReset)
-			db.Badger.Close()
 			os.Exit(0)
 		}
 	}
 }
 
-type config struct {
-	four                *bool
-	three               *bool
-	dev                 *bool
-	execFlag            *bool
-	ollamaModel         *string
-	oaiToken            *string
-	ollamaUrl           *string
-	ollamaDefaultModel  *string
-	query               string
-	enableFolderContext *bool
+func exitWithError(err error) {
+	fmt.Printf("%sError: %s%s\n", utils.ColorRed, err.Error(), utils.ColorReset)
+	os.Exit(1)
 }
