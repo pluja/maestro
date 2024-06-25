@@ -2,30 +2,59 @@ package utils
 
 import (
 	"bufio"
+	"bytes"
+	"os"
+	"os/exec"
+	"os/user"
+	"runtime"
+	"strings"
 	"fmt"
 	"net/url"
-	"os"
-	"os/user"
-	"strings"
 )
 
+// GetLinuxDistro retrieves the OS version for macOS or Linux.
 func GetLinuxDistro() (string, error) {
-	file, err := os.Open("/etc/os-release")
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "PRETTY_NAME=") {
-			return strings.Trim(line[len("PRETTY_NAME="):], "\""), nil
+	switch runtime.GOOS {
+	case "darwin":
+		// Execute the sw_vers command for macOS
+		cmd := exec.Command("sw_vers", "-productVersion")
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		err := cmd.Run()
+		if err != nil {
+			return "", err
 		}
-	}
 
-	if err := scanner.Err(); err != nil {
-		return "", err
+		// Read the output
+		scanner := bufio.NewScanner(&out)
+		for scanner.Scan() {
+			line := scanner.Text()
+			return strings.TrimSpace(line), nil
+		}
+
+		if err := scanner.Err(); err != nil {
+			return "", err
+		}
+
+	case "linux":
+		// Open the /etc/os-release file for Linux
+		file, err := os.Open("/etc/os-release")
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.HasPrefix(line, "PRETTY_NAME=") {
+				return strings.Trim(line[len("PRETTY_NAME="):], "\""), nil
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			return "", err
+		}
 	}
 
 	return "Unknown", nil
